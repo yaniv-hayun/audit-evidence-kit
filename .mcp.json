@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "audit-evidence-kit": {
+      "command": ".venv/bin/python",
+      "args": ["mcp-server/server.py"]
+    }
+  }
+}

@@ -1,0 +1,13 @@
+[project]
+name = "audit-evidence-kit-mcp"
+version = "0.1.0"
+description = "MCP server that runs gitleaks, semgrep and osv-scanner and returns normalized findings"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = [
+    "mcp[cli]>=2.3",
+    "packaging>=24",
+]
+# The scanners themselves are separate programs, not Python dependencies:
+#   brew install gitleaks semgrep osv-scanner
+# (semgrep must NOT be installed here: it requires mcp<2.)

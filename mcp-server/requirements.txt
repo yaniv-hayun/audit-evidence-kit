@@ -1,4 +1,0 @@
-mcp[cli]>=2.3
-packaging>=24
-# Scanners are installed separately (see README):
-#   brew install gitleaks osv-scanner semgrep

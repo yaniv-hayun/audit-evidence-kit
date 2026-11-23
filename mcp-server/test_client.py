@@ -1,6 +1,6 @@
 """Talk to the MCP server the same way Claude Code does, without Claude.
 
-Run:  .venv/bin/python mcp-server/test_client.py
+Run:  uv run --directory mcp-server test_client.py
 """
 
 import asyncio

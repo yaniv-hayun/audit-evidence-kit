@@ -1,7 +1,7 @@
 ---
 name: security-audit
 description: Audits a codebase for security vulnerabilities and maps each finding to SOC 2 and ISO 27001:2022 controls. Runs real scanners (gitleaks, semgrep, osv-scanner), confirms each finding by reading the code, and writes an evidence report. Use when the user asks for a security audit, security review, vulnerability scan, or SOC 2 / ISO 27001 compliance check of code.
-allowed-tools: Read, Grep, Glob, Write, mcp__audit-evidence-kit__run_all_scans, mcp__audit-evidence-kit__list_endpoints
+allowed-tools: Read, Grep, Glob, Write, mcp__plugin_audit-evidence-kit_scanners__run_all_scans, mcp__plugin_audit-evidence-kit_scanners__list_endpoints
 ---
 
 # Security Audit
@@ -21,7 +21,7 @@ Ask which folder to audit if it isn't clear. Otherwise use the current project.
 Use the absolute path when calling tools.
 
 ### 2. Run the scanners
-Call `run_all_scans` from the `audit-evidence-kit` MCP server with the folder.
+Call `run_all_scans` from the `scanners` MCP server (part of this plugin) with the folder.
 Keep `scanned_at` and `scanners` (tool versions) for the report.
 
 - If `errors` lists a scanner, continue with the others and record the gap

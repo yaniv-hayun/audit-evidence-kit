@@ -1,0 +1,19 @@
+{
+  "name": "audit-evidence-kit",
+  "owner": {
+    "name": "OWNER"
+  },
+  "metadata": {
+    "description": "Free security audit plugin for Claude Code with SOC 2 and ISO 27001 evidence reports."
+  },
+  "plugins": [
+    {
+      "name": "audit-evidence-kit",
+      "source": "./",
+      "description": "Runs gitleaks, semgrep and osv-scanner, verifies each finding, and maps it to SOC 2 and ISO 27001:2022 controls.",
+      "version": "0.1.0",
+      "license": "MIT",
+      "category": "security"
+    }
+  ]
+}

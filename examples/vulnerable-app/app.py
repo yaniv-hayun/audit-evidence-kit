@@ -4,8 +4,8 @@ import hashlib
 import logging
 import sqlite3
 import subprocess
-import yaml
 
+import yaml
 from flask import Flask, request
 
 app = Flask(__name__)
@@ -50,6 +50,7 @@ def delete_all():  # no authentication check
 @app.route("/import", methods=["POST"])
 def import_config():
     return str(yaml.load(request.data, Loader=yaml.Loader))
+
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0")  # debug mode on

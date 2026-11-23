@@ -11,6 +11,7 @@ Tools are thin wrappers: the real work lives in scanners.py.
 """
 
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TypedDict
 
@@ -44,6 +45,8 @@ class Summary(TypedDict):
 
 
 class ScanReport(TypedDict):
+    scanned_at: str
+    scanners: dict[str, str]
     summary: Summary
     findings: list[Finding]
     errors: dict[str, str]
@@ -91,7 +94,9 @@ def run_all_scans(path: str) -> ScanReport:
     findings = scanners.dedupe(findings)  # same bug from two scanners -> one finding
     summary = {sev: sum(f["severity"] == sev for f in findings)
                for sev in ("high", "medium", "low")}
-    return {"summary": {"total": len(findings), **summary},
+    return {"scanned_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "scanners": scanners.scanner_versions(),
+            "summary": {"total": len(findings), **summary},
             "findings": findings, "errors": errors}
 
 

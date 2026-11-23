@@ -46,6 +46,25 @@ def find_binary(name: str) -> str:
     raise RuntimeError(f"{name} is not installed. Install it with: {INSTALL_HINTS[name]}")
 
 
+def scanner_versions() -> dict[str, str]:
+    """Version of each installed scanner. Auditors need this: evidence must
+    say which tool, which version, produced it."""
+    commands = {
+        "gitleaks": ["version"],
+        "semgrep": ["--version"],
+        "osv-scanner": ["--version"],
+    }
+    versions = {}
+    for name, args in commands.items():
+        try:
+            out = subprocess.run([find_binary(name), *args], capture_output=True,
+                                 text=True, timeout=30).stdout
+            versions[name] = out.strip().splitlines()[0].split()[-1]
+        except Exception:
+            versions[name] = "not installed"
+    return versions
+
+
 def mask(value: str) -> str:
     """Keep the first 4 characters, hide the rest. Never return a full secret."""
     return value[:4] + "*" * max(len(value) - 4, 4)

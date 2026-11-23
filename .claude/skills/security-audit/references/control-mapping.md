@@ -16,6 +16,7 @@ the closest row and say why in the finding.
 | Insecure defaults / debug mode | CC7.1, CC8.1 | 8.9 |
 | CORS allows any origin | CC6.6 | 8.26 |
 | Vulnerable dependency | CC7.1 | 8.8 |
+| Unsafe deserialization (`pickle`, `yaml.load`) | CC7.1, CC8.1 | 8.28 |
 
 ## What the controls mean
 

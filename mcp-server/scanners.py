@@ -92,6 +92,7 @@ CWE_TO_ISSUE = {
     "CWE-489": "insecure-defaults", "CWE-668": "insecure-defaults",
     "CWE-798": "hardcoded-secret",
     "CWE-942": "cors",
+    "CWE-502": "unsafe-deserialization",
     "CWE-306": "missing-auth", "CWE-862": "missing-auth", "CWE-285": "missing-auth",
 }
 # Fallback when a rule's CWE is missing or wrong: keywords in the rule id.

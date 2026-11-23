@@ -163,3 +163,16 @@ flask==0.12
 flask>=2.3.3   # first version fixing CVE-2023-30861
 ```
 Name the CVE and the fixed version in the fix.
+
+## Unsafe deserialization
+**Principle:** never deserialize untrusted data with a loader that can create
+arbitrary objects. Use a safe loader (`yaml.safe_load`) or a data-only format
+(`json`). Never use `pickle` on user input.
+
+```python
+# Bad
+yaml.load(..., Loader=yaml.Loader)
+
+# Good
+yaml.safe_load(...)
+```

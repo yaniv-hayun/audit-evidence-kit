@@ -42,7 +42,7 @@ brew install uv gitleaks semgrep osv-scanner
 
 **2. Add the plugin** in Claude Code:
 ```
-/plugin marketplace add OWNER/audit-evidence-kit
+/plugin marketplace add yaniv-hayun/audit-evidence-kit
 /plugin install audit-evidence-kit@audit-evidence-kit
 ```
 Restart Claude Code, then run `/mcp`. You should see `scanners` connected with 5 tools.

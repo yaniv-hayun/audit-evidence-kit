@@ -15,7 +15,7 @@ def add_cors(resp):
     resp.headers["Access-Control-Allow-Origin"] = "*"  # CORS open to any origin
     return resp
     
-STRIPE_KEY = "sk_live_FAKE51HxyzABCDEF0123456789"  # hard-coded secret
+STRIPE_KEY = "sk_live_TESTTESTTESTTESTTESTTESTTEST"  # hard-coded secret
 log = logging.getLogger(__name__)
 
 

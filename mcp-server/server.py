@@ -1,76 +1,98 @@
 """audit-evidence-kit MCP server.
 
-Lesson 3: two tools.
-  - hello:        the smallest possible tool, to prove the wiring works
-  - scan_secrets: a tiny regex secret scanner (replaced by gitleaks in Lesson 4)
+Tools:
+  - scan_secrets:      hard-coded secrets (gitleaks)
+  - scan_code:         code vulnerabilities (semgrep)
+  - scan_dependencies: known-vulnerable packages (osv-scanner)
+  - run_all_scans:     all three, plus a summary
+  - list_endpoints:    every Flask route, for checking authentication
+
+Tools are thin wrappers: the real work lives in scanners.py.
 """
 
 import re
 from pathlib import Path
+from typing import TypedDict
 
 from mcp.server import MCPServer
 
-# 1. Create the server. The name is what Claude Code shows in /mcp.
+import scanners
+
 mcp = MCPServer("audit-evidence-kit")
 
-
-# 2. A tool is a normal Python function with a decorator.
-#    - The function name becomes the tool name.
-#    - The type hints become the input schema Claude sees.
-#    - The docstring becomes the tool description. Claude reads it to decide
-#      WHEN to call the tool, so write it like the skill's `description`.
-@mcp.tool()
-def hello(name: str) -> str:
-    """Say hello. Use only to test that the audit-evidence-kit server works."""
-    return f"Hello {name}, the audit-evidence-kit MCP server is running."
-
-
-SECRET_PATTERNS = {
-    "stripe-live-key": re.compile(r"sk_live_[0-9A-Za-z]{10,}"),
-    "aws-access-key": re.compile(r"AKIA[0-9A-Z]{16}"),
-    "github-token": re.compile(r"gh[pousr]_[0-9A-Za-z]{36}"),
-    "private-key": re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
-    "generic-password": re.compile(r"""(?i)(password|passwd|secret)\s*=\s*["'][^"']{4,}["']"""),
-}
 SKIP_DIRS = {".git", ".venv", "node_modules", "__pycache__"}
 
 
-def mask(value: str) -> str:
-    """Keep the first 4 characters, hide the rest. Never return a full secret."""
-    return value[:4] + "*" * max(len(value) - 4, 4)
+# Typed return values become an output schema: Claude knows the exact fields
+# before it calls the tool. A bare `dict` gives the SDK nothing to describe.
+class Finding(TypedDict):
+    scanner: str
+    rule: str
+    issue_type: str
+    severity: str
+    file: str
+    line: int | None
+    message: str
+    evidence: str
+
+
+class Summary(TypedDict):
+    total: int
+    high: int
+    medium: int
+    low: int
+
+
+class ScanReport(TypedDict):
+    summary: Summary
+    findings: list[Finding]
+    errors: dict[str, str]
 
 
 @mcp.tool()
-def scan_secrets(path: str) -> list[dict]:
-    """Scan a folder for hard-coded secrets (API keys, tokens, private keys,
-    passwords). Returns one item per finding with file, line, rule and a
-    masked match. Use during a security audit before reading code manually.
-    """
-    root = Path(path).expanduser().resolve()
-    if not root.exists():
-        raise ValueError(f"Path not found: {root}")
+def scan_secrets(path: str) -> list[Finding]:
+    """Scan a folder for hard-coded secrets (API keys, tokens, passwords,
+    private keys) using gitleaks. Secrets in the results are masked.
+    Returns normalized findings."""
+    return scanners.run_gitleaks(path)
 
-    files = [root] if root.is_file() else [
-        p for p in root.rglob("*")
-        if p.is_file() and not SKIP_DIRS & set(p.parts)
-    ]
 
-    findings = []
-    for file in files:
+@mcp.tool()
+def scan_code(path: str) -> list[Finding]:
+    """Scan a folder's source code for vulnerabilities (injection, weak
+    crypto, debug mode, sensitive logging, and more) using semgrep. Works for
+    most languages. Returns normalized findings, one per bug per line."""
+    return scanners.run_semgrep(path)
+
+
+@mcp.tool()
+def scan_dependencies(path: str) -> list[Finding]:
+    """Check a folder's dependency files (requirements.txt, package-lock.json,
+    go.mod, ...) for packages with known CVEs using osv-scanner. Returns one
+    finding per vulnerable package, with the version that fixes it."""
+    return scanners.run_osv(path)
+
+
+@mcp.tool()
+def run_all_scans(path: str) -> ScanReport:
+    """Run every scanner (secrets, code, dependencies) on a folder. Use this
+    first in a security audit. Returns findings, a summary, and any scanner
+    that failed (the others still run). Findings are leads, not verdicts:
+    confirm each one by reading the code."""
+    findings, errors = [], {}
+    for name, run in [("gitleaks", scanners.run_gitleaks),
+                      ("semgrep", scanners.run_semgrep),
+                      ("osv-scanner", scanners.run_osv)]:
         try:
-            lines = file.read_text(errors="ignore").splitlines()
-        except OSError:
-            continue
-        for line_no, line in enumerate(lines, start=1):
-            for rule, pattern in SECRET_PATTERNS.items():
-                if match := pattern.search(line):
-                    findings.append({
-                        "file": str(file.relative_to(root.parent if root.is_file() else root)),
-                        "line": line_no,
-                        "rule": rule,
-                        "match": mask(match.group(0)),
-                    })
-    return findings
+            findings.extend(run(path))
+        except Exception as exc:  # one broken scanner shouldn't stop the audit
+            errors[name] = str(exc)
+
+    findings = scanners.dedupe(findings)  # same bug from two scanners -> one finding
+    summary = {sev: sum(f["severity"] == sev for f in findings)
+               for sev in ("high", "medium", "low")}
+    return {"summary": {"total": len(findings), **summary},
+            "findings": findings, "errors": errors}
 
 
 ROUTE_RE = re.compile(r"""@\w+\.route\(\s*["']([^"']+)["'](?:.*?methods\s*=\s*\[([^\]]*)\])?""")
@@ -102,8 +124,7 @@ def list_endpoints(path: str) -> list[dict]:
                 })
     return endpoints
 
-# 3. Run over stdio: Claude Code starts this script as a subprocess and talks
-#    to it through stdin/stdout. That's why you must never print() to stdout
-#    in an MCP server: it would corrupt the protocol messages.
+
+# Run over stdio. Never print() to stdout here: it would corrupt the protocol.
 if __name__ == "__main__":
     mcp.run()

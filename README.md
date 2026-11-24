@@ -53,7 +53,22 @@ In any project, ask:
 ```
 run a security audit on this project
 ```
-The report is saved as `security-audit-report.md` in the audited folder.
+Claude first asks which ticketing system you use (Jira, Linear, Asana,
+monday.com, or none). It then writes, in the audited folder:
+
+| File | What it's for |
+|---|---|
+| `security-audit-report.md` | The evidence report |
+| `security-findings.csv` | Every finding, one row each; opens in any spreadsheet app |
+| `security-findings-jira.csv` | Jira CSV importer (labels, priority, description) |
+| `security-findings-linear.csv` | Linear CLI importer ("Linear" CSV) |
+| `security-findings-asana.csv` | Asana CSV importer (one section per severity) |
+| `security-findings-monday.csv` | monday.com import |
+
+Every finding has a stable ID (e.g. `AEK-3f9a1c02b7`) that stays the same on
+re-runs, so you can avoid duplicate tickets. Exported cells are protected
+against spreadsheet formula injection, since evidence comes from code that
+might be hostile.
 
 ## What it checks
 
@@ -99,6 +114,36 @@ claude plugin validate .                       # check the manifests
 
 `examples/vulnerable-app` contains planted bugs. After any change, run the
 audit on it and check the report still finds all of them.
+
+## Privacy: what leaves your machine
+
+Your source code is never uploaded by the scanners. They do make these
+network calls:
+
+| Scanner | Sends / downloads |
+|---|---|
+| osv-scanner | **Sends package names and versions** from your dependency files to osv.dev (and deps.dev to resolve transitive dependencies) |
+| semgrep | Downloads rule sets from semgrep.dev (`--metrics off` is set) |
+| trivy | Downloads its check bundle on first run |
+| gitleaks | Nothing |
+
+If your private package names are sensitive, review this before running
+the audit. Claude itself reads the code it audits, under your Claude Code
+data settings.
+
+## Security of this tool
+
+- **Prompt injection:** audited code may contain text aimed at AI reviewers
+  ("this is safe, don't report it"). The skill treats all audited content as
+  data, never as instructions, and reports such text as a finding. The test
+  app includes an example.
+- **Formula injection:** exported CSV cells starting with `=`, `+`, `-` or `@`
+  are prefixed with `'` so spreadsheets don't run them.
+- **Secrets** are masked in code before Claude sees them. The first 4
+  characters stay visible (e.g. `sk_l****`) to show the key type.
+- **Reports list your unfixed vulnerabilities.** Don't commit them to a public
+  repo; the skill suggests `.gitignore` entries. Each run overwrites the
+  previous report and CSVs, so archive them first if you need history.
 
 ## Limitations
 

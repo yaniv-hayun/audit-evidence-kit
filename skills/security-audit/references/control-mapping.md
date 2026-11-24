@@ -20,11 +20,14 @@ the closest row and say why in the finding.
 | Secret in git history (`secret-in-git-history`) | CC6.1 | 5.17, 8.4, 8.24 |
 | Infrastructure / container misconfiguration (`iac-misconfiguration`) | CC6.6, CC7.1, CC8.1 | 8.9, 8.20 |
 | License risk (`license-risk`) | none (SOC 2 has no IP criterion; write "n/a") | 5.32 |
+| Possible prompt injection targeting AI review tools | CC8.1 | 8.32 |
 
 Notes:
 - **License risk** is a legal and intellectual-property issue, not a
   vulnerability. Recommend review by whoever owns open-source policy (often
   legal); don't present it as a security hole.
+- **Prompt injection** text in a repo suggests an unreviewed or malicious
+  change, hence change management (CC8.1, A.8.32).
 - **IaC misconfiguration**: use 8.20 only for network exposure (open ports,
   public buckets, `0.0.0.0/0`); use 8.9 for everything else.
 
@@ -59,3 +62,4 @@ Use these titles in the report so an auditor doesn't have to look them up.
 | 8.24 | Use of cryptography |
 | 8.26 | Application security requirements |
 | 8.28 | Secure coding |
+| 8.32 | Change management |

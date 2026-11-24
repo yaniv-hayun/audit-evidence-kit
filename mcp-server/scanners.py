@@ -98,6 +98,24 @@ def dedupe(findings: list[dict]) -> list[dict]:
     return list(kept.values())
 
 
+def fingerprint(issue_type: str, file: str, rule: str, evidence: str) -> str:
+    """A stable ID for a finding, e.g. "AEK-3f9a1c02b7".
+
+    Built from WHAT the problem is and WHERE, but not the line number: adding a
+    line at the top of a file shouldn't turn every finding into a "new" ticket.
+    Same problem on a re-run -> same ID -> ticketing tools can skip it.
+    """
+    import hashlib
+    raw = "|".join([issue_type, file, rule, " ".join(evidence.split())])
+    return "AEK-" + hashlib.sha256(raw.encode()).hexdigest()[:10]
+
+
+def add_ids(findings: list[dict]) -> list[dict]:
+    for f in findings:
+        f["id"] = fingerprint(f["issue_type"], f["file"], f["rule"], f["evidence"])
+    return findings
+
+
 def resolve_root(path: str) -> Path:
     root = Path(path).expanduser().resolve()
     if not root.is_dir():

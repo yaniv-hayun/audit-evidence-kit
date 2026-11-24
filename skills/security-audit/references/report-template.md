@@ -40,6 +40,7 @@ Scanner leads reviewed: <total from run_all_scans> → <confirmed> confirmed,
 ## Findings
 
 ### 1. <title> — Severity: High
+- **ID:** AEK-3f9a1c02b7 (from export_findings; matches the ticket)
 - **Location:** path/to/file.py:42 (and :45 if merged)
 - **Source:** <scanner + rule id, or "manual review">
 - **Evidence:** `<offending line, secrets masked>`

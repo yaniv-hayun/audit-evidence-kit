@@ -30,15 +30,19 @@ your verdicts. In particular:
 
 ## Steps
 
-### 1. Scope and ticketing system
-Before running anything, ask the user both questions in one message (skip
+### 1. Scope, ticketing system and results location
+Before running anything, ask the user these questions in one message (skip
 any they've already answered):
 1. Which folder to audit (default: the current project).
 2. Which ticketing system they use, so the findings can be imported as
    tickets: **Jira**, **Linear**, **Asana**, **monday.com**, or **none**
    (CSV only).
+3. Where to save the results (default: an `audit-results` folder inside the
+   audited project). They can give any folder path, inside or outside the
+   project.
 
-Use the absolute path when calling tools.
+Use absolute paths when calling tools. Put **all** outputs (report and CSVs)
+in the results folder; never write them anywhere else.
 
 ### 2. Run the scanners
 Call `run_all_scans` from the `scanners` MCP server (part of this plugin) with the folder.
@@ -111,17 +115,20 @@ Read `references/control-mapping.md` and tag each finding with its SOC 2 and
 ISO 27001 controls, using the official titles listed there.
 
 ### 6. Export findings and tickets
-Call `export_findings` with the audited folder, the ticketing system from
-step 1, and every confirmed finding (not the dropped leads). For each:
+Call `export_findings` with the audited folder, the ticketing system and
+the results folder from step 1 (`output_dir`; omit it for the default), and
+every confirmed finding (not the dropped leads). For each:
 - keep `id` exactly as `run_all_scans` returned it (for merged findings, use
   the id of the main location); omit `id` for manual-review findings;
 - `fix` is plain text: one or two sentences plus the key line of code, not a
   whole Markdown block;
 - `soc2` / `iso27001` are lists of control IDs, e.g. `["A.8.28"]`.
 
-It returns the files written and the final `ids` of every finding.
+It creates the results folder if needed and returns it as `output_dir`,
+with the files written and the final `ids` of every finding.
 
 ### 7. Write the report
+Save the report as `security-audit-report.md` in `output_dir` from step 6.
 Read `references/report-template.md` and follow it exactly, using the IDs
 from step 6 in each finding's **ID** line. For each **Fix** line, read
 `references/fix-examples.md` and show corrected code in its style.
@@ -131,15 +138,15 @@ Read `references/ticketing-import.md` and give the user the import steps for
 their system, with the file paths from step 6. Skip this if they chose none.
 
 ### 9. Keep the results out of public git
-The report and CSVs list the project's unfixed vulnerabilities. Read the
-audited project's `.gitignore`. If it doesn't already ignore
-`security-audit-report.md` and `security-findings*.csv`, tell the user and
-suggest adding these lines (don't edit the file unless they agree):
+The report and CSVs list the project's unfixed vulnerabilities. If the
+results folder is inside a git repository, read that repository's
+`.gitignore`. If it doesn't already ignore the results folder, tell the user
+and suggest adding it, e.g. (don't edit the file unless they agree):
 
 ```
-security-audit-report.md
-security-findings*.csv
+audit-results/
 ```
+Skip this check if the results folder is outside any git repository.
 Skip this step if the user says the report is meant to be published (for
 example, a sample report in an open-source project's `examples/` folder).
 

@@ -1,3 +1,8 @@
 .venv/
 __pycache__/
 .claude/settings.local.json
+
+# Audit results list unfixed vulnerabilities: keep them out of git...
+audit-results/
+# ...except the public sample report.
+!examples/vulnerable-app/audit-results/

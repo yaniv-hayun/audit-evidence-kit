@@ -1,6 +1,7 @@
 # Importing findings into a ticketing system
 
-Give the user only the section for their system, with the real file path.
+Give the user only the section for their system, with the real file path
+(all files are in the results folder, by default `audit-results/`).
 Each ticket's description starts with its **Finding ID** (e.g. AEK-3f9a1c02b7).
 The same problem keeps the same ID on every audit, so tell the user how to
 avoid duplicates on re-runs (last bullet of each section).

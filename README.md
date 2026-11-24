@@ -16,7 +16,7 @@ osv-scanner → CVEs + licenses     missing auth, CORS, logic         fixes with
 trivy       → Docker / IaC                                          dropped leads + reasons
 ```
 
-See a full sample report: [examples/vulnerable-app/security-audit-report.md](examples/vulnerable-app/security-audit-report.md)
+See a full sample report: [examples/vulnerable-app/audit-results/security-audit-report.md](examples/vulnerable-app/audit-results/security-audit-report.md)
 
 ## What a finding looks like
 
@@ -53,8 +53,10 @@ In any project, ask:
 ```
 run a security audit on this project
 ```
-Claude first asks which ticketing system you use (Jira, Linear, Asana,
-monday.com, or none). It then writes, in the audited folder:
+Claude first asks three questions: which folder to audit, which ticketing
+system you use (Jira, Linear, Asana, monday.com, or none), and where to save
+the results. By default everything goes into an `audit-results/` folder
+inside the audited project; you can give any other path. It writes:
 
 | File | What it's for |
 |---|---|
@@ -142,7 +144,7 @@ data settings.
 - **Secrets** are masked in code before Claude sees them. The first 4
   characters stay visible (e.g. `sk_l****`) to show the key type.
 - **Reports list your unfixed vulnerabilities.** Don't commit them to a public
-  repo; the skill suggests `.gitignore` entries. Each run overwrites the
+  repo; the skill suggests adding `audit-results/` to `.gitignore`. Each run overwrites the
   previous report and CSVs, so archive them first if you need history.
 
 ## Limitations

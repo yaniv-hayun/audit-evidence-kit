@@ -1,7 +1,8 @@
 # Report Template
 
-Save the report as `security-audit-report.md` in the audited folder, then show
-the user the summary table and the path to the report.
+Save the report as `security-audit-report.md` in the results folder
+(`output_dir` from `export_findings`), then show the user the summary table
+and the path to the report.
 
 ## Severity rules
 

@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Literal, NotRequired, TypedDict
 
 from mcp.server import MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
 
 import exporters
 import scanners
@@ -148,8 +149,12 @@ class ExportedId(TypedDict):
 
 
 class ExportResult(TypedDict):
+    output_dir: str
     files: list[str]
     ids: list[ExportedId]
+
+
+DEFAULT_RESULTS_DIR = "audit-results"
 
 
 @mcp.tool()
@@ -157,13 +162,29 @@ def export_findings(
     path: str,
     findings: list[ConfirmedFinding],
     ticketing: Literal["none", "jira", "linear", "asana", "monday"] = "none",
+    output_dir: str | None = None,
 ) -> ExportResult:
-    """Write CONFIRMED findings (after triage, not raw scanner leads) to files
-    in the audited folder: always security-findings.csv, plus an import file
-    for the user's ticketing system (jira, linear, asana or monday) if given.
-    Keep each finding's `id` from run_all_scans so re-runs don't create
-    duplicate tickets. Returns the files written and every finding's final ID
-    (manual-review findings get one here), to put in the report."""
+    """Write CONFIRMED findings (after triage, not raw scanner leads) to the
+    results folder: always security-findings.csv, plus an import file for the
+    user's ticketing system (jira, linear, asana or monday) if given.
+
+    `path` is the audited folder. `output_dir` is where results go: the
+    user's chosen folder, or omit it for `<path>/audit-results`. The folder is
+    created if missing. Keep each finding's `id` from run_all_scans so re-runs
+    don't create duplicate tickets. Returns the results folder (write the
+    report there too), the files written, and every finding's final ID."""
+    out = Path(output_dir).expanduser() if output_dir else Path(path).expanduser() / DEFAULT_RESULTS_DIR
+    if not out.is_absolute():  # a relative choice means "inside the audited folder"
+        out = Path(path).expanduser() / out
+    out = out.resolve()
+    if out.exists() and not out.is_dir():
+        # ToolError = an expected problem: a clean message for Claude, no crash log.
+        raise ToolError(f"Results location exists and is not a folder: {out}")
+    try:
+        out.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        raise ToolError(f"Can't create results folder {out}: {exc.strerror}") from exc
+
     rows = []
     for f in findings:
         row = dict(f)
@@ -171,8 +192,9 @@ def export_findings(
             row["id"] = scanners.fingerprint(row["issue_type"], row["file"],
                                              "manual", row["evidence"])
         rows.append(row)
-    files = exporters.export(rows, path, ticketing)
-    return {"files": files, "ids": [{"title": r["title"], "id": r["id"]} for r in rows]}
+    files = exporters.export(rows, str(out), ticketing)
+    return {"output_dir": str(out), "files": files,
+            "ids": [{"title": r["title"], "id": r["id"]} for r in rows]}
 
 
 ROUTE_RE = re.compile(r"""@\w+\.route\(\s*["']([^"']+)["'](?:.*?methods\s*=\s*\[([^\]]*)\])?""")

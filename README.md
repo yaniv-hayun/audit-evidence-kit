@@ -8,12 +8,12 @@ scanners, has Claude verify every finding by reading the code, and records
 what was confirmed, merged, or dropped, and why.
 
 ```
-scanners (fast, noisy)          Claude (judgment)                 report
-────────────────────────        ─────────────────────────         ──────────────────────────
-gitleaks     → secrets          confirm / merge / drop each lead  findings + severity
-semgrep      → code bugs   ──►  find what scanners miss:     ──►  SOC 2 + ISO 27001 controls
-osv-scanner  → CVEs             missing auth, CORS, logic         fixes with code
-                                                                  dropped leads + reasons
+scanners (fast, noisy)            Claude (judgment)                 report
+──────────────────────────        ─────────────────────────         ──────────────────────────
+gitleaks    → secrets + history   confirm / merge / drop each lead  findings + severity
+semgrep     → code bugs      ──►  find what scanners miss:     ──►  SOC 2 + ISO 27001 controls
+osv-scanner → CVEs + licenses     missing auth, CORS, logic         fixes with code
+trivy       → Docker / IaC                                          dropped leads + reasons
 ```
 
 See a full sample report: [examples/vulnerable-app/security-audit-report.md](examples/vulnerable-app/security-audit-report.md)
@@ -37,7 +37,7 @@ See a full sample report: [examples/vulnerable-app/security-audit-report.md](exa
 
 **1. Prerequisites** (macOS; on Linux, install the same tools from their release pages):
 ```bash
-brew install uv gitleaks semgrep osv-scanner
+brew install uv gitleaks semgrep osv-scanner trivy
 ```
 
 **2. Add the plugin** in Claude Code:
@@ -45,7 +45,7 @@ brew install uv gitleaks semgrep osv-scanner
 /plugin marketplace add yaniv-hayun/audit-evidence-kit
 /plugin install audit-evidence-kit@audit-evidence-kit
 ```
-Restart Claude Code, then run `/mcp`. You should see `scanners` connected with 5 tools.
+Restart Claude Code, then run `/mcp`. You should see `scanners` connected with 7 tools.
 
 ## Use
 
@@ -66,6 +66,9 @@ The report is saved as `security-audit-report.md` in the audited folder.
 | Sensitive data in logs | semgrep | CC6.1, CC7.2 | A.8.11, A.8.15 |
 | Insecure defaults / debug mode | semgrep | CC7.1, CC8.1 | A.8.9 |
 | Vulnerable dependency | osv-scanner | CC7.1 | A.8.8 |
+| Secret in git history | gitleaks | CC6.1 | A.5.17, A.8.4, A.8.24 |
+| Dockerfile / Terraform / Kubernetes misconfiguration | trivy, semgrep | CC6.6, CC7.1, CC8.1 | A.8.9, A.8.20 |
+| License risk (copyleft, unknown) | osv-scanner | n/a | A.5.32 |
 | Missing authentication / authorization | Claude (manual review) | CC6.1, CC6.3 | A.5.15, A.8.5 |
 | CORS allows any origin | Claude (manual review) | CC6.6 | A.8.26 |
 

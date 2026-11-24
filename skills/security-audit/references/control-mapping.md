@@ -17,6 +17,16 @@ the closest row and say why in the finding.
 | CORS allows any origin | CC6.6 | 8.26 |
 | Vulnerable dependency | CC7.1 | 8.8 |
 | Unsafe deserialization (`pickle`, `yaml.load`) | CC7.1, CC8.1 | 8.28 |
+| Secret in git history (`secret-in-git-history`) | CC6.1 | 5.17, 8.4, 8.24 |
+| Infrastructure / container misconfiguration (`iac-misconfiguration`) | CC6.6, CC7.1, CC8.1 | 8.9, 8.20 |
+| License risk (`license-risk`) | none (SOC 2 has no IP criterion; write "n/a") | 5.32 |
+
+Notes:
+- **License risk** is a legal and intellectual-property issue, not a
+  vulnerability. Recommend review by whoever owns open-source policy (often
+  legal); don't present it as a security hole.
+- **IaC misconfiguration**: use 8.20 only for network exposure (open ports,
+  public buckets, `0.0.0.0/0`); use 8.9 for everything else.
 
 ## What the controls mean
 
@@ -38,11 +48,14 @@ Use these titles in the report so an auditor doesn't have to look them up.
 |---|---|
 | 5.15 | Access control |
 | 5.17 | Authentication information |
+| 5.32 | Intellectual property rights |
+| 8.4 | Access to source code |
 | 8.5 | Secure authentication |
 | 8.8 | Management of technical vulnerabilities |
 | 8.9 | Configuration management |
 | 8.11 | Data masking |
 | 8.15 | Logging |
+| 8.20 | Networks security |
 | 8.24 | Use of cryptography |
 | 8.26 | Application security requirements |
 | 8.28 | Secure coding |

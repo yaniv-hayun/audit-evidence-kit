@@ -1,11 +1,13 @@
 """audit-evidence-kit MCP server.
 
 Tools:
-  - scan_secrets:      hard-coded secrets (gitleaks)
-  - scan_code:         code vulnerabilities (semgrep)
-  - scan_dependencies: known-vulnerable packages (osv-scanner)
-  - run_all_scans:     all three, plus a summary
-  - list_endpoints:    every Flask route, for checking authentication
+  - scan_secrets:        hard-coded secrets in current files (gitleaks)
+  - scan_git_history:    secrets in past commits (gitleaks)
+  - scan_code:           code vulnerabilities (semgrep)
+  - scan_dependencies:   vulnerable packages + license risks (osv-scanner)
+  - scan_infrastructure: Dockerfile / Terraform / Kubernetes misconfig (trivy)
+  - run_all_scans:       all of the above, plus a summary
+  - list_endpoints:      every Flask route, for checking authentication
 
 Tools are thin wrappers: the real work lives in scanners.py.
 """
@@ -69,23 +71,44 @@ def scan_code(path: str) -> list[Finding]:
 
 
 @mcp.tool()
+def scan_git_history(path: str) -> list[Finding]:
+    """Scan the git history of a folder for secrets that were committed in
+    the past, even if they were later deleted. Secrets are masked. Returns
+    one finding per secret, listing the commits that contain it."""
+    return scanners.run_gitleaks_history(path)
+
+
+@mcp.tool()
 def scan_dependencies(path: str) -> list[Finding]:
     """Check a folder's dependency files (requirements.txt, package-lock.json,
-    go.mod, ...) for packages with known CVEs using osv-scanner. Returns one
-    finding per vulnerable package, with the version that fixes it."""
+    go.mod, ...) using osv-scanner for (1) packages with known CVEs, with the
+    version that fixes them, and (2) license risks: copyleft or unknown
+    licenses."""
     return scanners.run_osv(path)
 
 
 @mcp.tool()
+def scan_infrastructure(path: str) -> list[Finding]:
+    """Scan infrastructure-as-code and container files (Dockerfile,
+    Terraform, Kubernetes, CloudFormation, Helm) for misconfigurations such
+    as containers running as root, public storage buckets, or open firewall
+    rules, using trivy."""
+    return scanners.run_trivy_config(path)
+
+
+@mcp.tool()
 def run_all_scans(path: str) -> ScanReport:
-    """Run every scanner (secrets, code, dependencies) on a folder. Use this
-    first in a security audit. Returns findings, a summary, and any scanner
-    that failed (the others still run). Findings are leads, not verdicts:
-    confirm each one by reading the code."""
+    """Run every scanner on a folder: secrets (current files and git history),
+    code, dependencies and licenses, and infrastructure config. Use this first
+    in a security audit. Returns findings, a summary, and any scanner that
+    failed (the others still run). Findings are leads, not verdicts: confirm
+    each one by reading the code."""
     findings, errors = [], {}
     for name, run in [("gitleaks", scanners.run_gitleaks),
+                      ("gitleaks-history", scanners.run_gitleaks_history),
                       ("semgrep", scanners.run_semgrep),
-                      ("osv-scanner", scanners.run_osv)]:
+                      ("osv-scanner", scanners.run_osv),
+                      ("trivy", scanners.run_trivy_config)]:
         try:
             findings.extend(run(path))
         except Exception as exc:  # one broken scanner shouldn't stop the audit

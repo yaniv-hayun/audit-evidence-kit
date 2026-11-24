@@ -4,7 +4,7 @@ Every scanner speaks its own JSON dialect. This module translates all of them
 into one Finding shape, so the skill only has to understand one format:
 
     {
-      "scanner":    "gitleaks" | "semgrep" | "osv-scanner",
+      "scanner":    "gitleaks" | "semgrep" | "osv-scanner" | "trivy",
       "rule":       scanner's rule id,
       "issue_type": one of the issue types in references/control-mapping.md,
       "severity":   "high" | "medium" | "low",
@@ -30,6 +30,7 @@ INSTALL_HINTS = {
     "gitleaks": "brew install gitleaks",
     "semgrep": "brew install semgrep",
     "osv-scanner": "brew install osv-scanner",
+    "trivy": "brew install trivy",
 }
 
 
@@ -53,6 +54,7 @@ def scanner_versions() -> dict[str, str]:
         "gitleaks": ["version"],
         "semgrep": ["--version"],
         "osv-scanner": ["--version"],
+        "trivy": ["--version"],
     }
     versions = {}
     for name, args in commands.items():
@@ -85,9 +87,12 @@ def dedupe(findings: list[dict]) -> list[dict]:
         # Findings without a line (dependencies) are told apart by evidence,
         # otherwise every package in requirements.txt would collapse into one.
         key = (f["file"], f["line"] or f["evidence"], f["issue_type"])
-        if key in kept:
-            if f["scanner"] not in kept[key]["scanner"]:
-                kept[key]["scanner"] += f"+{f['scanner']}"
+        if key in kept and f["scanner"] not in kept[key]["scanner"].split("+"):
+            kept[key]["scanner"] += f"+{f['scanner']}"  # another scanner, same bug
+        elif key in kept:
+            # Same scanner, same line, different rule: a different problem
+            # (e.g. three Terraform rules all pointing at a resource's line 1).
+            kept[key + (f["rule"],)] = dict(f)
         else:
             kept[key] = dict(f)
     return list(kept.values())
@@ -113,12 +118,15 @@ CWE_TO_ISSUE = {
     "CWE-942": "cors",
     "CWE-502": "unsafe-deserialization",
     "CWE-306": "missing-auth", "CWE-862": "missing-auth", "CWE-285": "missing-auth",
+    "CWE-250": "iac-misconfiguration",  # running with unnecessary privileges (root)
 }
 # Fallback when a rule's CWE is missing or wrong: keywords in the rule id.
 KEYWORD_TO_ISSUE = {
     "sql": "injection", "subprocess": "injection", "exec": "injection",
     "eval": "injection", "md5": "weak-crypto", "sha1": "weak-crypto",
     "debug": "insecure-defaults", "cors": "cors", "secret": "hardcoded-secret",
+    "dockerfile": "iac-misconfiguration", "terraform": "iac-misconfiguration",
+    "kubernetes": "iac-misconfiguration",
 }
 
 
@@ -233,10 +241,74 @@ def first_fixed_version(vulns: list[dict]) -> str | None:
     return str(max(needed)) if needed else None
 
 
+# Licenses that let you use a package in closed-source commercial software.
+PERMISSIVE = {"MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC",
+              "0BSD", "Unlicense", "CC0-1.0", "PSF-2.0", "Python-2.0", "Zlib"}
+# Strong copyleft: distributing your product may require releasing its source.
+STRONG_COPYLEFT = ("GPL", "AGPL", "SSPL", "EUPL", "OSL")
+# Weak copyleft: obligations apply mainly to changes in the package itself.
+WEAK_COPYLEFT = ("LGPL", "MPL", "EPL", "CDDL")
+
+
+def license_findings(raw: dict, root: Path) -> list[dict]:
+    """Turn osv-scanner's license data into findings.
+
+    Strong copyleft -> medium, weak copyleft -> low (one finding per package).
+    Unknown/non-standard metadata -> one grouped low finding, because old
+    packages often have messy metadata and 5 separate "verify this" findings
+    would bury the real ones.
+    """
+    findings, unknown, seen = [], [], set()
+    for result in raw.get("results", []):
+        source = Path(result["source"]["path"])
+        file = str(source.relative_to(root)) if source.is_relative_to(root) else str(source)
+        for pkg in result.get("packages", []):
+            name, version = pkg["package"]["name"], pkg["package"]["version"]
+            if (name, version) in seen:
+                continue
+            seen.add((name, version))
+            licenses = pkg.get("licenses") or ["UNKNOWN"]
+            if all(lic in PERMISSIVE for lic in licenses):
+                continue
+            joined = " AND ".join(licenses)
+            # LGPL contains "GPL", so test weak copyleft first.
+            if any(lic.startswith(WEAK_COPYLEFT) for lic in licenses):
+                kind, severity = "weak copyleft", "low"
+            elif any(lic.startswith(STRONG_COPYLEFT) for lic in licenses):
+                kind, severity = "strong copyleft", "medium"
+            else:
+                unknown.append((file, f"{name}=={version} ({joined})"))
+                continue
+            findings.append({
+                "scanner": "osv-scanner",
+                "rule": f"license:{joined}",
+                "issue_type": "license-risk",
+                "severity": severity,
+                "file": file,
+                "line": None,
+                "message": f"{name} {version} is licensed {joined} ({kind}); check it is compatible with how you distribute your product",
+                "evidence": f"{name}=={version}  license: {joined}",
+            })
+    if unknown:
+        findings.append({
+            "scanner": "osv-scanner",
+            "rule": "license:unknown",
+            "issue_type": "license-risk",
+            "severity": "low",
+            "file": unknown[0][0],
+            "line": None,
+            "message": f"{len(unknown)} packages have missing or non-standard license metadata; verify their licenses manually",
+            "evidence": "; ".join(item for _, item in unknown)[:400],
+        })
+    return findings
+
+
 def run_osv(path: str) -> list[dict]:
+    """Vulnerable dependencies AND license risks, from one osv-scanner run."""
     root = resolve_root(path)
     proc = subprocess.run(
-        [find_binary("osv-scanner"), "scan", "source", "--format", "json", "-r", "."],
+        [find_binary("osv-scanner"), "scan", "source", "--format", "json",
+         "--licenses=" + ",".join(sorted(PERMISSIVE)), "-r", "."],
         cwd=root, capture_output=True, text=True,
     )
     # osv-scanner exits 1 when it finds vulnerabilities; that's not an error.
@@ -256,6 +328,8 @@ def run_osv(path: str) -> list[dict]:
                 continue
             seen.add((name, version))
             vulns = pkg.get("vulnerabilities", [])
+            if not vulns:  # listed only for its license; no CVEs
+                continue
             groups = pkg.get("groups", [])
             max_score = max((g.get("max_severity") or "0" for g in groups), key=float, default=None)
             cves = sorted({a for v in vulns for a in v.get("aliases", []) if a.startswith("CVE-")})
@@ -270,5 +344,91 @@ def run_osv(path: str) -> list[dict]:
                 "message": (f"{name} {version} has {len(vulns)} known vulnerabilities"
                             + (f"; upgrade to {fixed} or later" if fixed else "")),
                 "evidence": f"{name}=={version}  CVEs: {', '.join(cves[:8]) or 'none listed'}",
+            })
+    return findings + license_findings(raw, root)
+
+
+# ---------------------------------------------------------------- gitleaks (git history)
+
+def run_gitleaks_history(path: str) -> list[dict]:
+    """Secrets in past commits. A key deleted from the code is still leaked if
+    it's in history: anyone who clones the repo can read it."""
+    root = resolve_root(path)
+    git = subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=root,
+                         capture_output=True, text=True)
+    if git.returncode != 0:
+        return []  # not a git repo: nothing to scan
+    repo = Path(git.stdout.strip()).resolve()
+    subdir = root.relative_to(repo)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        report = Path(tmp) / "history.json"
+        cmd = [find_binary("gitleaks"), "git", str(repo), "--report-format", "json",
+               "--report-path", str(report), "--no-banner", "--exit-code", "0"]
+        if str(subdir) != ".":
+            cmd += [f"--log-opts=-- {subdir}"]  # only commits touching the audited folder
+        subprocess.run(cmd, capture_output=True, text=True, check=True)
+        raw = json.loads(report.read_text() or "[]")
+
+    # The same secret usually appears in many commits: one finding per (file, rule).
+    grouped: dict[tuple, dict] = {}
+    for item in raw:
+        file = Path(item["File"])
+        file = str(file.relative_to(subdir)) if file.is_relative_to(subdir) else str(file)
+        key = (file, item["RuleID"])
+        commit = f"{item['Commit'][:8]} ({item['Date'][:10]})"
+        if key in grouped:
+            grouped[key]["commits"].append(commit)
+            continue
+        grouped[key] = {"item": item, "file": file, "commits": [commit]}
+
+    return [{
+        "scanner": "gitleaks",
+        "rule": g["item"]["RuleID"],
+        "issue_type": "secret-in-git-history",
+        "severity": "high",
+        "file": g["file"],
+        "line": None,  # line numbers differ per commit
+        "message": (f"{g['item']['Description']} Present in git history in "
+                    f"{len(g['commits'])} commit(s): {', '.join(g['commits'][:5])}"),
+        "evidence": mask(g["item"]["Secret"]),
+    } for g in grouped.values()]
+
+
+# ---------------------------------------------------------------- trivy (IaC / containers)
+
+TRIVY_SEVERITY = {"CRITICAL": "high", "HIGH": "high", "MEDIUM": "medium",
+                  "LOW": "low", "UNKNOWN": "low"}
+
+
+def run_trivy_config(path: str) -> list[dict]:
+    """Misconfigurations in Dockerfiles, Terraform, Kubernetes, CloudFormation
+    and Helm charts."""
+    root = resolve_root(path)
+    proc = subprocess.run(
+        [find_binary("trivy"), "config", "--format", "json", "--quiet", "."],
+        cwd=root, capture_output=True, text=True,
+    )
+    if proc.returncode != 0 or not proc.stdout:
+        raise RuntimeError(f"trivy failed: {proc.stderr[-500:]}")
+    raw = json.loads(proc.stdout)
+
+    findings = []
+    for result in raw.get("Results", []) or []:
+        for m in result.get("Misconfigurations", []) or []:
+            if m.get("Status") != "FAIL":
+                continue
+            cause = m.get("CauseMetadata", {})
+            lines = cause.get("Code", {}).get("Lines") or []
+            evidence = next((ln["Content"].strip() for ln in lines if ln.get("IsCause")), "")
+            findings.append({
+                "scanner": "trivy",
+                "rule": m["ID"],
+                "issue_type": "iac-misconfiguration",
+                "severity": TRIVY_SEVERITY.get(m.get("Severity", "UNKNOWN"), "low"),
+                "file": result["Target"],
+                "line": cause.get("StartLine"),
+                "message": f"{m['Title']}. {m.get('Resolution', '')}".strip()[:300],
+                "evidence": evidence[:200] or m.get("Message", "")[:200],
             })
     return findings

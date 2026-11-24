@@ -176,3 +176,80 @@ yaml.load(..., Loader=yaml.Loader)
 # Good
 yaml.safe_load(...)
 ```
+
+## Secret in git history
+**Principle:** rotate first, clean second. The secret must be treated as
+leaked from the moment it was pushed, so revoke it and issue a new one before
+anything else. Rewriting history only stops *future* clones from seeing it.
+
+```bash
+# 1. Rotate: revoke the key in the provider's dashboard, issue a new one,
+#    store the new one in a secrets manager / environment variable.
+
+# 2. Remove it from history (rewrites commits; coordinate with your team)
+pip install git-filter-repo
+echo 'sk_live_REDACTED==>REMOVED' > replacements.txt   # the real old value
+git filter-repo --replace-text replacements.txt
+git push --force --all
+```
+Add to the fix: "Rotating is mandatory; rewriting history is optional and
+breaks existing clones."
+
+## Container running as root / unpinned base image
+**Principle:** pin the base image and run as a non-root user.
+
+```dockerfile
+# Bad
+FROM python:latest
+CMD ["python", "app.py"]
+
+# Good
+FROM python:3.12-slim
+RUN useradd --create-home appuser
+USER appuser
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "app:app"]
+```
+
+## Public storage bucket
+**Principle:** block public access at the bucket level; grant access through
+signed URLs or a CDN instead.
+
+```hcl
+# Bad
+block_public_acls       = false
+restrict_public_buckets = false
+
+# Good
+resource "aws_s3_bucket_public_access_block" "uploads" {
+  bucket                  = aws_s3_bucket.uploads.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+```
+
+## Firewall open to the internet
+**Principle:** never expose admin ports (SSH 22, RDP 3389, databases) to
+`0.0.0.0/0`. Restrict to a VPN or bastion range, or use SSM instead of SSH.
+
+```hcl
+# Bad
+cidr_blocks = ["0.0.0.0/0"]
+
+# Good
+cidr_blocks = ["10.0.0.0/16"]   # internal / VPN range only
+```
+
+## License risk
+**Principle:** decide per package, with whoever owns open-source policy.
+Options: replace the package, confirm your usage is allowed (e.g. LGPL used
+as an unmodified library), or record an approved exception.
+
+```
+# Fix line format
+Review <package> (<license>) against your open-source policy. If not
+approved, replace with <permissive alternative> or record an exception.
+```
+For "unknown license" findings, look up the license on the package's source
+repository and record it.

@@ -1,6 +1,6 @@
 [project]
 name = "audit-evidence-kit-mcp"
-version = "0.1.0"
+version = "0.2.0"
 description = "MCP server that runs gitleaks, semgrep and osv-scanner and returns normalized findings"
 requires-python = ">=3.11"
 license = "MIT"

@@ -22,7 +22,10 @@ Use the absolute path when calling tools.
 
 ### 2. Run the scanners
 Call `run_all_scans` from the `scanners` MCP server (part of this plugin) with the folder.
-Keep `scanned_at` and `scanners` (tool versions) for the report.
+It covers: secrets in current files and in git history (gitleaks), code
+vulnerabilities (semgrep), vulnerable dependencies and license risks
+(osv-scanner), and Dockerfile / Terraform / Kubernetes misconfiguration
+(trivy). Keep `scanned_at` and `scanners` (tool versions) for the report.
 
 - If `errors` lists a scanner, continue with the others and record the gap
   in the report's **Limitations** section, with the install command.
@@ -49,6 +52,21 @@ the project is deployed. Reachability changes the *severity*, not the
 verdict: if the package is never imported (directly or by an imported
 package), lower the severity one level and say so in **Why it matters**.
 Keep the CVE list and the fixed version from the scanner.
+
+For **secrets in git history**: always Confirmed, even if the secret is gone
+from the current files. Anyone who can clone the repo can read old commits.
+If the same secret is also in the current files, keep both findings: they
+need different fixes (remove from code vs. rotate and clean history).
+
+For **IaC misconfiguration**: check whether the file is actually used
+(referenced by CI, deployment scripts, or docs). An unused example file is
+still Confirmed but one severity level lower. Merge findings that share a root
+cause (e.g. the four S3 public-access-block flags are one problem: "bucket can
+be made public").
+
+For **license risk**: Confirmed if the package is declared. Severity comes
+from the scanner (strong copyleft medium, weak copyleft and unknown low).
+Never raise a license finding above medium.
 
 ### 4. Manual review: what scanners miss
 Scanners can't judge intent. Check these yourself:

@@ -3,6 +3,11 @@
 A free Claude Code plugin that audits your code for security vulnerabilities
 and writes an **evidence report mapped to SOC 2 and ISO 27001:2022 controls**.
 
+**Free. No signup, no account, nothing sent to us.** The scanners run on your
+machine, and Claude reviews the code under your existing Claude agreement.
+There is no server, no telemetry, and no new vendor to approve.
+[Exactly what leaves your machine](#privacy-what-leaves-your-machine).
+
 It doesn't just ask Claude to "look for bugs". It runs real open-source
 scanners, has Claude verify every finding by reading the code, and records
 what was confirmed, merged, or dropped, and why.
@@ -119,19 +124,21 @@ audit on it and check the report still finds all of them.
 
 ## Privacy: what leaves your machine
 
-Your source code is never uploaded by the scanners. They do make these
-network calls:
+This plugin has no backend. Its author receives **nothing**: no code, no
+findings, no usage data. Everything else is listed here so you can decide
+before running it:
 
-| Scanner | Sends / downloads |
-|---|---|
-| osv-scanner | **Sends package names and versions** from your dependency files to osv.dev (and deps.dev to resolve transitive dependencies) |
-| semgrep | Downloads rule sets from semgrep.dev (`--metrics off` is set) |
-| trivy | Downloads its check bundle on first run |
-| gitleaks | Nothing |
+| What | Where it goes | Why |
+|---|---|---|
+| **Audited code** (the parts Claude reads) | **Anthropic**, under your existing Claude Code agreement and data settings | Claude confirms findings and checks access control and logic. This is the same as any other Claude Code session; no new party is involved |
+| Package names and versions from your dependency files | osv.dev and deps.dev (Google's open vulnerability databases) | To look up known CVEs and licenses. **No source code is sent** |
+| Nothing (download only) | semgrep.dev: rule sets (`--metrics off` is set) | Code-scanning rules |
+| Nothing (download only) | trivy: check bundle on first run | Infrastructure-scanning rules |
+| Nothing | gitleaks | Runs fully offline |
+| **Reports and CSVs** | **Your disk only** (`audit-results/` by default) | Never uploaded. Ticket files are imported into Jira, Linear, Asana or monday only if *you* import them |
 
-If your private package names are sensitive, review this before running
-the audit. Claude itself reads the code it audits, under your Claude Code
-data settings.
+If your private package names are sensitive (they can reveal internal
+project names), review the osv-scanner row before running the audit.
 
 ## Security of this tool
 

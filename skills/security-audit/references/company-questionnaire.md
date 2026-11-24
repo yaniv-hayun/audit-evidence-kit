@@ -12,7 +12,7 @@ Rules for asking:
 - Questions marked ★ are required to generate anything; the rest can use
   defaults.
 - Policy numbers (P1–P20) refer to section 3 of
-  [soc2-type2-requirements.md](soc2-type2-requirements.md).
+  [soc2-requirements.md](soc2-requirements.md).
 
 ---
 
@@ -160,6 +160,29 @@ The most important section: every policy names an owner and an approver.
 | L9 | Footer text | default: "{company} · Confidential · {policy} v{version} · Page X of Y" / custom | all (branding) | A classification label on every page is a common auditor expectation |
 
 ---
+
+## M. ISO 27001 only
+
+Ask this section only when ISO 27001 readiness was selected. Clause numbers
+refer to [iso27001-requirements.md](iso27001-requirements.md).
+
+| ID | Question | Options / format | Clause | If the answer is... |
+|---|---|---|---|---|
+| M1 ★ | Is the ISMS scope defined in writing (which teams, locations, systems, and what's excluded)? | yes / draft / no | 4.3 | **No:** high gap; the generator proposes a scope from A6 and D1 |
+| M2 | Have you listed internal and external issues and interested parties (customers, regulators, investors) with their requirements? | yes / no | 4.1, 4.2 | **No:** medium gap |
+| M3 | Have you decided whether climate change is relevant to your ISMS? | yes, relevant / yes, not relevant (recorded) / not considered | 4.1 (Amd 1:2024) | **Not considered:** medium gap; a short recorded decision is usually enough |
+| M4 ★ | Is there a documented risk assessment method, and has a risk assessment been done? | both / method only / neither | 6.1.2, 8.2 | **Neither:** high gap |
+| M5 ★ | Do you have a Statement of Applicability (all 93 Annex A controls, included or excluded with reasons)? | yes / in progress / no | 6.1.3 | **No:** high gap |
+| M6 | Is there a risk treatment plan with owners and dates? | yes / no | 6.1.3 e, 8.3 | **No:** high gap |
+| M7 | Are there measurable information security objectives (e.g. "100% MFA by Q2")? | yes / no | 6.2 | **No:** medium gap |
+| M8 ★ | Has an internal audit of the ISMS been planned or done? Who does it? | done / planned / no; name or external firm | 9.2 | **No:** high gap. **Done by the person who runs the ISMS:** not independent; suggest an external or cross-team auditor |
+| M9 ★ | Has top management held a management review of the ISMS? | yes, with minutes / planned / no | 9.3 | **No:** high gap |
+| M10 | Is there a log of nonconformities and corrective actions? | yes / no | 10.2 | **No:** medium gap; the ticket export can serve as this log |
+| M11 | Is there a register of legal, regulatory and contractual requirements (privacy laws, customer contracts)? | yes / no | A.5.31 | **No:** medium gap |
+| M12 | Have you chosen an accredited certification body? Target date for Stage 1? | name / not yet; date | Certification | Sets the timeline for the readiness plan |
+
+Sections A–L apply to both frameworks, except A9 and A10, which are SOC 2
+only.
 
 ## Templates created when the answer is "No"
 

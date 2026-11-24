@@ -58,9 +58,20 @@ In any project, ask:
 ```
 run a security audit on this project
 ```
-Claude first asks three questions: which folder to audit, which ticketing
-system you use (Jira, Linear, Asana, monday.com, or none), and where to save
-the results. By default everything goes into an `audit-results/` folder
+Claude first asks what you want. You can pick **more than one**:
+
+| Option | What happens | Output |
+|---|---|---|
+| **Security scan** | 5 scanners + Claude's review of your code | `security-audit-report.md`, `security-findings*.csv` |
+| **SOC 2 Type II readiness** | A company questionnaire (roles, HR, access, engineering, vendors...), then a gap analysis against the Trust Services Criteria | `readiness-report.md`, `readiness-gaps*.csv`, `company-profile.md` |
+| **ISO 27001 readiness** | The same questionnaire plus ISO-specific questions (ISMS scope, Statement of Applicability, internal audit, management review) | Same files, mapped to ISO clauses and Annex A |
+
+Choosing both frameworks runs one questionnaire for both. Answers are saved,
+so the next run only asks what changed. Readiness assessments find gaps
+before an auditor does; they're not an audit or a certification.
+
+It also asks which folder to scan, which ticketing system you use (Jira,
+Linear, Asana, monday.com, or none), and where to save the results. By default everything goes into an `audit-results/` folder
 inside the audited project; you can give any other path. It writes:
 
 | File | What it's for |

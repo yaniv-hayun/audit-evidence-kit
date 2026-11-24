@@ -163,10 +163,13 @@ def export_findings(
     findings: list[ConfirmedFinding],
     ticketing: Literal["none", "jira", "linear", "asana", "monday"] = "none",
     output_dir: str | None = None,
+    kind: Literal["security-findings", "readiness-gaps"] = "security-findings",
 ) -> ExportResult:
-    """Write CONFIRMED findings (after triage, not raw scanner leads) to the
-    results folder: always security-findings.csv, plus an import file for the
-    user's ticketing system (jira, linear, asana or monday) if given.
+    """Write CONFIRMED findings (after triage, not raw scanner leads) or
+    SOC 2 / ISO 27001 readiness gaps to the results folder: always
+    `<kind>.csv`, plus an import file for the user's ticketing system (jira,
+    linear, asana or monday) if given. Use kind="readiness-gaps" for gaps from
+    the readiness assessment (file="organization", line=null).
 
     `path` is the audited folder. `output_dir` is where results go: the
     user's chosen folder, or omit it for `<path>/audit-results`. The folder is
@@ -192,7 +195,7 @@ def export_findings(
             row["id"] = scanners.fingerprint(row["issue_type"], row["file"],
                                              "manual", row["evidence"])
         rows.append(row)
-    files = exporters.export(rows, str(out), ticketing)
+    files = exporters.export(rows, str(out), ticketing, kind)
     return {"output_dir": str(out), "files": files,
             "ids": [{"title": r["title"], "id": r["id"]} for r in rows]}
 

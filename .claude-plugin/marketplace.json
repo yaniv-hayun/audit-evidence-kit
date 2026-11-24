@@ -11,7 +11,7 @@
       "name": "audit-evidence-kit",
       "source": "./",
       "description": "Runs gitleaks, semgrep and osv-scanner, verifies each finding, and maps it to SOC 2 and ISO 27001:2022 controls.",
-      "version": "0.5.1",
+      "version": "0.6.0",
       "license": "MIT",
       "category": "security"
     }

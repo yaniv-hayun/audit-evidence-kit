@@ -51,7 +51,7 @@ brew install uv gitleaks semgrep osv-scanner trivy
 /plugin install audit-evidence-kit@audit-evidence-kit
 ```
 Restart Claude Code, then run `/mcp`. You should see
-`plugin:audit-evidence-kit:scanners` connected with 8 tools.
+`plugin:audit-evidence-kit:scanners` connected with 11 tools.
 
 **3. Update** when a new version is released:
 ```
@@ -85,6 +85,13 @@ Claude first asks what you want. You can pick **more than one**:
 | **SOC 2 Type II readiness** | A company questionnaire (roles, HR, access, engineering, vendors...), then a gap analysis against the Trust Services Criteria | `readiness-report.md`, `readiness-gaps*.csv`, `company-profile.md` |
 | **ISO 27001 readiness** | The same questionnaire plus ISO-specific questions (ISMS scope, Statement of Applicability, internal audit, management review) | Same files, mapped to ISO clauses and Annex A |
 
+For SOC 2 / ISO 27001 readiness, Claude also asks for your **company
+website** to detect your logo and brand colors (or you give it a logo file),
+confirms them with you, and creates every policy as a **branded Word
+document**: logo on every page, your colors, document control, approval
+block and version history. Anything you still need to decide is marked
+`[TO CONFIRM]` and highlighted.
+
 Choosing both frameworks runs one questionnaire for both. The questionnaire
 goes one section at a time; "don't know" is always a valid answer. Answers are
 saved, so the next run only asks what changed. Readiness assessments find
@@ -105,6 +112,9 @@ In the same first message Claude also asks:
 | `readiness-report.md` | SOC 2 / ISO 27001 gaps, roles to assign, open decisions, timeline |
 | `readiness-gaps.csv` | Every readiness gap, one row each |
 | `company-profile.md` | Your questionnaire answers, reused on the next run |
+| `policies/*.docx` | Branded Word policies and ISMS documents, tailored to your answers, with a Policy Index |
+| `templates/*.docx` | Templates for missing records (NDA, checklists, access review, ...), created when an answer is "no" |
+| `branding/` | Your confirmed logo and colors, reused for every document |
 | `*-jira.csv`, `*-linear.csv`, `*-asana.csv`, `*-monday.csv` | Import files for the ticketing system you chose, for both findings and gaps |
 
 These files describe your unfixed weaknesses: keep them out of public repos
@@ -150,10 +160,13 @@ skills/security-audit/
     company-questionnaire.md  the company questions (sections A-M)
     soc2-requirements.md      SOC 2 Type II policies, evidence, roles
     iso27001-requirements.md  ISO 27001 clauses 4-10, Annex A, ISO gaps
+    policy-generation.md      branding steps and which documents to write
 mcp-server/
   server.py            MCP tools (thin wrappers)
   scanners.py          runs the scanners, normalizes their output
   exporters.py         CSV and ticketing import files
+  branding.py          logo and color detection from a website (SSRF-safe)
+  documents.py         branded Word (.docx) rendering
   test_client.py       exercises the server without Claude
 examples/vulnerable-app/   deliberately vulnerable test target + sample report
 ```
@@ -194,6 +207,7 @@ before running it:
 | Nothing (download only) | semgrep.dev: rule sets (`--metrics off` is set) | Code-scanning rules |
 | Nothing (download only) | trivy: check bundle on first run | Infrastructure-scanning rules |
 | Nothing | gitleaks | Runs fully offline |
+| Nothing (download only) | Your company website, only if you give its URL for branding | Fetches the homepage and logo images from your own machine; only images and colors are kept |
 | **Reports and CSVs** | **Your disk only** (`audit-results/` by default) | Never uploaded. Ticket files are imported into Jira, Linear, Asana or monday only if *you* import them |
 
 If your private package names are sensitive (they can reveal internal

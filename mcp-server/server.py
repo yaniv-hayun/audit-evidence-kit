@@ -9,6 +9,9 @@ Tools:
   - run_all_scans:       all of the above, plus a summary
   - list_endpoints:      every Flask route, for checking authentication
   - export_findings:     CSV + Jira / Linear / Asana / monday import files
+  - detect_branding:     logo + brand colors from the company website
+  - save_branding:       confirmed logo, colors, font for all documents
+  - generate_document:   branded .docx policy / template
 
 Tools are thin wrappers: the real work lives in scanners.py and exporters.py.
 """
@@ -21,6 +24,8 @@ from typing import Literal, NotRequired, TypedDict
 from mcp.server import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 
+import branding
+import documents
 import exporters
 import scanners
 
@@ -198,6 +203,76 @@ def export_findings(
     files = exporters.export(rows, str(out), ticketing, kind)
     return {"output_dir": str(out), "files": files,
             "ids": [{"title": r["title"], "id": r["id"]} for r in rows]}
+
+
+@mcp.tool()
+def detect_branding(url: str, results_dir: str) -> dict:
+    """Find logo candidates and brand colors on the company's website.
+    Downloads up to 4 logo candidates as PNG files into
+    <results_dir>/branding/candidates/ and returns them with their source,
+    size, colors and warnings, plus detected brand colors. Nothing is applied:
+    look at the candidate files, show them to the user, and call
+    save_branding with what they confirm. SVG logos are skipped (Word can't
+    embed them reliably). Only images and colors are returned, never page
+    text."""
+    try:
+        return branding.detect(url, results_dir)
+    except branding.BrandingError as exc:
+        raise ToolError(str(exc)) from exc
+
+
+@mcp.tool()
+def save_branding(
+    results_dir: str,
+    logo_path: str | None = None,
+    primary_color: str | None = None,
+    secondary_color: str | None = None,
+    font: str | None = None,
+    footer_text: str | None = None,
+) -> dict:
+    """Save the user's CONFIRMED branding for all generated documents:
+    a logo file (PNG/JPG, e.g. a candidate from detect_branding or the user's
+    own file), hex colors, font (default Calibri) and footer text (may use
+    {company}, {classification}, {title}, {version}). A primary color too
+    light to read on white is darkened automatically; the notes say so."""
+    try:
+        return branding.save(results_dir, logo_path, primary_color, secondary_color, font, footer_text)
+    except branding.BrandingError as exc:
+        raise ToolError(str(exc)) from exc
+
+
+@mcp.tool()
+def generate_document(
+    results_dir: str,
+    kind: Literal["policy", "plan", "register", "template"],
+    filename: str,
+    title: str,
+    body_markdown: str,
+    company: str,
+    owner: str,
+    approver: str,
+    version: str = "1.0",
+    effective_date: str | None = None,
+    next_review: str | None = None,
+    classification: str = "Internal",
+    criteria: list[str] | None = None,
+    legal_review: bool = False,
+) -> str:
+    """Create one branded Word document (policy, plan, register or template)
+    in <results_dir>/policies/ (templates in <results_dir>/templates/), using
+    the branding saved by save_branding (logo in every page header, colors,
+    footer with page numbers). Adds the document-control table, approval
+    block and version history automatically: don't write those in the body.
+    body_markdown supports #/##/### headings, - bullets, 1. numbered lists,
+    | tables |, **bold**, `code`, and [TO CONFIRM: ...] for anything the
+    company must still decide (highlighted in yellow). Set legal_review=true
+    for legal documents such as NDAs. Returns the file path."""
+    try:
+        return documents.build(results_dir, kind, filename, title, body_markdown, company, owner,
+                               approver, version, effective_date, next_review, classification,
+                               criteria, legal_review)
+    except (ValueError, branding.BrandingError) as exc:
+        raise ToolError(str(exc)) from exc
 
 
 ROUTE_RE = re.compile(r"""@\w+\.route\(\s*["']([^"']+)["'](?:.*?methods\s*=\s*\[([^\]]*)\])?""")

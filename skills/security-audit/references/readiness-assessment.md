@@ -89,7 +89,14 @@ and results folder chosen at the start, and one entry per gap:
 - `fix`: the concrete action, including any template to use
 - `soc2` / `iso27001`: criteria or clauses, e.g. `["CC6.1"]`, `["A.8.5"]`
 
-## 6. Write the readiness report
+## 6. Branding and documents
+Read `policy-generation.md` and follow it: ask for the company website (or a
+logo file), confirm the logo and colors with the user, save them, then
+create every policy, ISMS document and template as a branded Word file. This
+step is **not optional**: the user expects the documents, not only the gap
+list.
+
+## 7. Write the readiness report
 Save as `readiness-report.md` in the results folder:
 
 ```
@@ -120,6 +127,9 @@ Type II observation period can start.">
 
 ## Open decisions
 <"don't know" answers and the defaults used>
+
+## Documents
+<every document created, from the Policy Index; number of [TO CONFIRM] items left>
 
 ## Suggested timeline
 <ordered plan: fix high gaps → policies → start evidence collection →

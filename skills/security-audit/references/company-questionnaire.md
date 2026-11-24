@@ -28,7 +28,7 @@ Rules for asking:
 | A5 ★ | Which countries are employees in? | list | P9, P2 | Background checks are legally limited in some countries (e.g. Israel, much of the EU) |
 | A6 ★ | What does the product do, and which system is in scope for the audit? | text (product name, main components) | system description, all | The audit covers a defined system, not the whole company |
 | A7 ★ | What data do you store about customers? | none / business contact data / personal data (PII) / health data / payment cards / other sensitive | P6, P7, P8, privacy | Drives data classification levels, encryption and retention |
-| A8 | Where are your customers? | Israel / EU / US / other | privacy, P16 | GDPR, Israeli privacy regulations and US state laws change notification rules |
+| A8 | Where are your customers? | EU / US / other (multi-select) | privacy, P16 | GDPR and US state laws change breach-notification rules; other regions (typed under "Other") may add their own |
 | A9 ★ | Which Trust Services categories do customers expect besides Security? | none / Availability / Confidentiality / Processing Integrity / Privacy | P17, P18, privacy | Each extra category adds criteria and evidence |
 | A10 | Type 1 first, or straight to Type 2? Target report date? | Type 1 / Type 2 / not decided + date | evidence calendar | Sets the observation period and when evidence must start |
 | A11 | Have you chosen an audit firm? | name / not yet | all | Auditors differ on sample sizes and policy expectations |

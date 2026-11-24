@@ -6,3 +6,4 @@ __pycache__/
 audit-results/
 # ...except the public sample report.
 !examples/vulnerable-app/audit-results/
+.DS_Store

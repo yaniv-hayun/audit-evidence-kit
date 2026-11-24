@@ -1,7 +1,7 @@
 ---
 name: security-audit
 description: Security scanning and SOC 2 Type II / ISO 27001 readiness. Scans code for vulnerabilities, secrets (including git history), vulnerable dependencies, license risks and Docker/Terraform misconfiguration; runs a company questionnaire to find SOC 2 and ISO 27001:2022 gaps; writes evidence reports plus CSV and Jira, Linear, Asana or monday.com import files. Use when the user asks for a security audit, security review, vulnerability scan, SOC 2 or ISO 27001 readiness, gap analysis, or compliance check.
-allowed-tools: Read, Grep, Glob, Write, AskUserQuestion, mcp__plugin_audit-evidence-kit_scanners__run_all_scans, mcp__plugin_audit-evidence-kit_scanners__list_endpoints, mcp__plugin_audit-evidence-kit_scanners__export_findings
+allowed-tools: Read, Grep, Glob, Write, AskUserQuestion, mcp__plugin_audit-evidence-kit_scanners__run_all_scans, mcp__plugin_audit-evidence-kit_scanners__list_endpoints, mcp__plugin_audit-evidence-kit_scanners__export_findings, mcp__plugin_audit-evidence-kit_scanners__detect_branding, mcp__plugin_audit-evidence-kit_scanners__save_branding, mcp__plugin_audit-evidence-kit_scanners__generate_document
 ---
 
 # Security Audit and Compliance Readiness
@@ -21,7 +21,7 @@ already answered. Two calls:
 
 | # | Header | Question | Options (the tool adds "Other" automatically) | Type |
 |---|---|---|---|---|
-| 1 | What to run | What should I do? | **Security scan and results** (scan the code, report vulnerabilities) · **SOC 2 Type II readiness** (questionnaire → gaps before a SOC 2 audit) · **ISO 27001 readiness** (questionnaire → gaps before ISO certification) | **multi-select** |
+| 1 | What to run | What should I do? | **Security scan and results** (scan the code, report vulnerabilities) · **SOC 2 Type II readiness** (questionnaire → gaps + branded policy documents) · **ISO 27001 readiness** (questionnaire → gaps + branded ISMS documents) | **multi-select** |
 | 2 | Folder | Which folder should I scan? (ask only if the scan is selected) | **This project (Recommended)** · **A different folder** (they type the path in "Other") | single |
 | 3 | Ticketing | Which ticketing system do you use? A CSV is always created. | **None, CSV only** · **Jira** · **Linear** · **Asana**. For monday.com, the user picks "Other" and types it: say so in the question text | single |
 | 4 | Results | Where should I save the results? | **audit-results/ in this project (Recommended)** · **Somewhere else** (they type the path in "Other") | single |
@@ -177,8 +177,10 @@ Never print a full secret value, even if you see it while reading code.
 Read `references/readiness-assessment.md` and follow it exactly. It loads the
 questionnaire and the requirement files for the selected frameworks, saves
 the answers as `company-profile.md`, exports the gaps with
-`export_findings(kind="readiness-gaps")`, and writes `readiness-report.md`,
-all in the results folder chosen at the start.
+`export_findings(kind="readiness-gaps")`, asks for the company website to
+detect the logo and colors, creates every policy, ISMS document and template
+as a branded Word file (`policies/`, `templates/`), and writes
+`readiness-report.md`, all in the results folder chosen at the start.
 
 The company's answers are as sensitive as the scan results (they describe
 its weaknesses): the `.gitignore` check in step 9 applies to them too.

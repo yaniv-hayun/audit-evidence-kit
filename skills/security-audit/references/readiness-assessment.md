@@ -15,10 +15,37 @@ user a short summary of the saved answers and ask whether anything changed.
 Re-ask only what changed. Otherwise start the questionnaire.
 
 ## 3. Ask the questionnaire
-- One section per message, in order A → L, then M if ISO 27001 is selected.
-- Skip A9 and A10 unless SOC 2 is selected.
-- For each question, show the options; accept free text; "don't know" uses
-  the default and becomes an **open decision**.
+Go in order A → L, then M if ISO 27001 is selected. Skip A9 and A10 unless
+SOC 2 is selected.
+
+**How to ask: interactive, never as a table.** Don't print a section as a
+table and ask the user to type answers. Use the multiple-choice question
+tool (AskUserQuestion in Claude Code) for every question that has options:
+- Up to **4 questions per call**, from the same section. A section with 11
+  questions takes 3 calls.
+- Each question: the full question text, a short header (e.g. "A2 Team size"),
+  and its options as clickable choices, 2–4 per question. The tool adds an
+  "Other" choice automatically, so the user can always type their own answer.
+- **Multi-select** (`multiSelect: true`) when more than one answer can be
+  true: A7 (data types), A8 (customer regions), A9 (Trust Services
+  categories), J1-style lists, and any question whose options aren't mutually
+  exclusive. Single-select otherwise.
+- **More than 4 options:** keep the 3–4 most common as choices and rely on
+  "Other" for the rest, or split the question in two (e.g. A7: "personal
+  data?" and "health or payment card data?").
+- Put the recommended or most common option first; add "(Recommended)" only
+  when one choice is clearly better for compliance (e.g. "Enforced for
+  everyone (Recommended)" for MFA).
+- Always include **"Don't know"** as an option where the user might not know.
+  It uses the default and becomes an **open decision**.
+- **Free-text questions** (A1 company name, A5 countries, A6 product,
+  B1/B3 names, J1 vendor list, K2 top risks): the tool needs options, so ask
+  these in a short plain message instead, a few at a time, one line each.
+- Before the first question of each section, say in one line what the
+  section is about and how many questions it has.
+
+If the multiple-choice tool isn't available (e.g. another client), ask one
+question per line with numbered options, and accept the number as an answer.
 - If the user wants to go faster, ask only the ★ questions and use defaults
   for the rest; list the defaults used in the report.
 - Treat the answers as the user's statements, not verified facts. The report

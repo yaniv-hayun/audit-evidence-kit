@@ -1,7 +1,7 @@
 ---
 name: security-audit
 description: Security scanning and SOC 2 Type II / ISO 27001 readiness. Scans code for vulnerabilities, secrets (including git history), vulnerable dependencies, license risks and Docker/Terraform misconfiguration; runs a company questionnaire to find SOC 2 and ISO 27001:2022 gaps; writes evidence reports plus CSV and Jira, Linear, Asana or monday.com import files. Use when the user asks for a security audit, security review, vulnerability scan, SOC 2 or ISO 27001 readiness, gap analysis, or compliance check.
-allowed-tools: Read, Grep, Glob, Write, mcp__plugin_audit-evidence-kit_scanners__run_all_scans, mcp__plugin_audit-evidence-kit_scanners__list_endpoints, mcp__plugin_audit-evidence-kit_scanners__export_findings
+allowed-tools: Read, Grep, Glob, Write, AskUserQuestion, mcp__plugin_audit-evidence-kit_scanners__run_all_scans, mcp__plugin_audit-evidence-kit_scanners__list_endpoints, mcp__plugin_audit-evidence-kit_scanners__export_findings
 ---
 
 # Security Audit and Compliance Readiness
@@ -11,20 +11,20 @@ a SOC 2 Type II readiness assessment, and an ISO 27001 readiness assessment.
 Your output is evidence a compliance auditor could rely on.
 
 ## Start: ask what to run
-Before doing anything else, ask the user in **one** message (use the
-multiple-choice question tool if available; skip anything they already
-answered):
+Before doing anything else, ask the user with the multiple-choice question
+tool (AskUserQuestion), never as a typed list or table. Skip anything they
+already answered. Two calls:
+- **Call 1:** question 1 only (it decides what else to ask).
+- **Call 2:** questions 2–4 together (leave out 2 if the scan wasn't chosen).
 
-1. **What should I do?** They may choose **more than one**:
-   - **Security scan and results**: scan the code and report vulnerabilities
-   - **SOC 2 Type II readiness**: questionnaire → gaps before a SOC 2 audit
-   - **ISO 27001 readiness**: questionnaire → gaps before ISO certification
-2. **Which folder to scan** (only if the security scan is selected; default:
-   the current project).
-3. **Which ticketing system** they use: **Jira**, **Linear**, **Asana**,
-   **monday.com**, or **none** (CSV only).
-4. **Where to save the results** (default: an `audit-results` folder inside
-   the project). Any folder path is accepted, inside or outside the project.
+"Other" (added by the tool) lets the user type a path or another tool:
+
+| # | Header | Question | Options (the tool adds "Other" automatically) | Type |
+|---|---|---|---|---|
+| 1 | What to run | What should I do? | **Security scan and results** (scan the code, report vulnerabilities) · **SOC 2 Type II readiness** (questionnaire → gaps before a SOC 2 audit) · **ISO 27001 readiness** (questionnaire → gaps before ISO certification) | **multi-select** |
+| 2 | Folder | Which folder should I scan? (ask only if the scan is selected) | **This project (Recommended)** · **A different folder** (they type the path in "Other") | single |
+| 3 | Ticketing | Which ticketing system do you use? A CSV is always created. | **None, CSV only** · **Jira** · **Linear** · **Asana**. For monday.com, the user picks "Other" and types it: say so in the question text | single |
+| 4 | Results | Where should I save the results? | **audit-results/ in this project (Recommended)** · **Somewhere else** (they type the path in "Other") | single |
 
 Then run the selected parts in this order:
 1. **Security scan** (if selected): the steps below.

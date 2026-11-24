@@ -5,7 +5,8 @@ answers decide **who** is named in each policy, **which tools** the
 procedures refer to, and **which policies or sections** apply at all.
 
 Rules for asking:
-- Ask one section at a time, not all ~60 questions at once.
+- Ask one section at a time, with the interactive multiple-choice tool
+  (see readiness-assessment.md, step 3), never as a printed table.
 - Offer the listed options, but always accept a free-text answer.
 - "Don't know" is a valid answer. Use the default, and list the item as an
   open decision in the summary.

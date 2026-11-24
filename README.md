@@ -50,14 +50,33 @@ brew install uv gitleaks semgrep osv-scanner trivy
 /plugin marketplace add yaniv-hayun/audit-evidence-kit
 /plugin install audit-evidence-kit@audit-evidence-kit
 ```
-Restart Claude Code, then run `/mcp`. You should see `scanners` connected with 7 tools.
+Restart Claude Code, then run `/mcp`. You should see
+`plugin:audit-evidence-kit:scanners` connected with 8 tools.
+
+**3. Update** when a new version is released:
+```
+/plugin update audit-evidence-kit
+```
+Then start a new session. `/plugin` shows the installed version.
 
 ## Use
 
-In any project, ask:
+Open Claude Code in the project you want to check:
+```bash
+cd ~/path/to/your/project
+claude
+```
+Then type the command:
+```
+/audit-evidence-kit:security-audit
+```
+or just ask in plain English, for example:
 ```
 run a security audit on this project
+check our SOC 2 readiness
+are we ready for ISO 27001?
 ```
+
 Claude first asks what you want. You can pick **more than one**:
 
 | Option | What happens | Output |
@@ -66,22 +85,30 @@ Claude first asks what you want. You can pick **more than one**:
 | **SOC 2 Type II readiness** | A company questionnaire (roles, HR, access, engineering, vendors...), then a gap analysis against the Trust Services Criteria | `readiness-report.md`, `readiness-gaps*.csv`, `company-profile.md` |
 | **ISO 27001 readiness** | The same questionnaire plus ISO-specific questions (ISMS scope, Statement of Applicability, internal audit, management review) | Same files, mapped to ISO clauses and Annex A |
 
-Choosing both frameworks runs one questionnaire for both. Answers are saved,
-so the next run only asks what changed. Readiness assessments find gaps
-before an auditor does; they're not an audit or a certification.
+Choosing both frameworks runs one questionnaire for both. The questionnaire
+goes one section at a time; "don't know" is always a valid answer. Answers are
+saved, so the next run only asks what changed. Readiness assessments find
+gaps before an auditor does; they're not an audit or a certification.
 
-It also asks which folder to scan, which ticketing system you use (Jira,
-Linear, Asana, monday.com, or none), and where to save the results. By default everything goes into an `audit-results/` folder
-inside the audited project; you can give any other path. It writes:
+In the same first message Claude also asks:
+- **which folder to scan** (security scan only; default: the current project),
+- **which ticketing system** you use: Jira, Linear, Asana, monday.com, or none,
+- **where to save the results**: default `audit-results/` inside the project,
+  or any path you choose.
+
+### Output files
 
 | File | What it's for |
 |---|---|
-| `security-audit-report.md` | The evidence report |
-| `security-findings.csv` | Every finding, one row each; opens in any spreadsheet app |
-| `security-findings-jira.csv` | Jira CSV importer (labels, priority, description) |
-| `security-findings-linear.csv` | Linear CLI importer ("Linear" CSV) |
-| `security-findings-asana.csv` | Asana CSV importer (one section per severity) |
-| `security-findings-monday.csv` | monday.com import |
+| `security-audit-report.md` | Security scan evidence report |
+| `security-findings.csv` | Every scan finding, one row each; opens in any spreadsheet app |
+| `readiness-report.md` | SOC 2 / ISO 27001 gaps, roles to assign, open decisions, timeline |
+| `readiness-gaps.csv` | Every readiness gap, one row each |
+| `company-profile.md` | Your questionnaire answers, reused on the next run |
+| `*-jira.csv`, `*-linear.csv`, `*-asana.csv`, `*-monday.csv` | Import files for the ticketing system you chose, for both findings and gaps |
+
+These files describe your unfixed weaknesses: keep them out of public repos
+(Claude suggests adding `audit-results/` to `.gitignore`).
 
 Every finding has a stable ID (e.g. `AEK-3f9a1c02b7`) that stays the same on
 re-runs, so you can avoid duplicate tickets. Exported cells are protected
@@ -111,14 +138,23 @@ The full mapping and control titles are in
 ## Repository layout
 
 ```
-.claude-plugin/       plugin + marketplace manifests (registers the MCP server)
+.claude-plugin/        plugin + marketplace manifests (registers the MCP server)
 skills/security-audit/
-  SKILL.md            the audit process Claude follows
-  references/         control mapping, report template, fix examples
+  SKILL.md             the start menu, security scan and readiness process
+  references/          loaded only when needed:
+    control-mapping.md     findings -> SOC 2 / ISO 27001 controls
+    report-template.md     security report format and severity rules
+    fix-examples.md        bad code -> good code per issue type
+    ticketing-import.md    import steps for Jira, Linear, Asana, monday.com
+    readiness-assessment.md   readiness procedure and report template
+    company-questionnaire.md  the company questions (sections A-M)
+    soc2-requirements.md      SOC 2 Type II policies, evidence, roles
+    iso27001-requirements.md  ISO 27001 clauses 4-10, Annex A, ISO gaps
 mcp-server/
-  server.py           MCP tools (thin wrappers)
-  scanners.py         runs the scanners, normalizes their output
-  test_client.py      exercises the server without Claude
+  server.py            MCP tools (thin wrappers)
+  scanners.py          runs the scanners, normalizes their output
+  exporters.py         CSV and ticketing import files
+  test_client.py       exercises the server without Claude
 examples/vulnerable-app/   deliberately vulnerable test target + sample report
 ```
 
@@ -126,9 +162,21 @@ examples/vulnerable-app/   deliberately vulnerable test target + sample report
 
 ```bash
 uv run --directory mcp-server test_client.py   # test the MCP server alone
-claude --plugin-dir .                          # run Claude Code with this plugin loaded
 claude plugin validate .                       # check the manifests
 ```
+
+To try your local changes in Claude Code, disable the installed copy first
+(otherwise the plugin loads twice), then load the folder:
+```bash
+claude plugin disable audit-evidence-kit@audit-evidence-kit
+claude --plugin-dir .
+# when done:
+claude plugin enable audit-evidence-kit@audit-evidence-kit
+```
+
+To release: bump `version` in `.claude-plugin/plugin.json`,
+`.claude-plugin/marketplace.json` and `mcp-server/pyproject.toml`, push, then
+`/plugin update audit-evidence-kit`.
 
 `examples/vulnerable-app` contains planted bugs. After any change, run the
 audit on it and check the report still finds all of them.

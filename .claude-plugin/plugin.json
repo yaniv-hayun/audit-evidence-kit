@@ -1,6 +1,6 @@
 {
   "name": "audit-evidence-kit",
-  "version": "0.6.0",
+  "version": "1.0.0",
   "description": "Security audit skill + MCP server: runs gitleaks, semgrep and osv-scanner, has Claude verify every finding, and writes an evidence report mapped to SOC 2 and ISO 27001:2022 controls.",
   "license": "MIT",
   "keywords": ["security", "soc2", "iso27001", "compliance", "audit", "mcp", "claude-skills"],

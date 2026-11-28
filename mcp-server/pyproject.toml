@@ -1,6 +1,6 @@
 [project]
 name = "audit-evidence-kit-mcp"
-version = "0.6.0"
+version = "1.0.0"
 description = "MCP server that runs security scanners, normalizes findings, and exports them for ticketing tools"
 requires-python = ">=3.11"
 license = "MIT"
